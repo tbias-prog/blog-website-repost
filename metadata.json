@@ -1,0 +1,5 @@
+{
+  "name": "Editorial Blog Platform",
+  "description": "A mobile-first, editorial-style blog platform for readers and administrators, featuring content management, analytics, and secure authentication.",
+  "requestFramePermissions": []
+}

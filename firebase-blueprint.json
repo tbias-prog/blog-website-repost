@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique identifier for the user" },
+        "displayName": { "type": "string", "description": "User's full name" },
+        "email": { "type": "string", "format": "email", "description": "User's email address" },
+        "role": { "type": "string", "enum": ["admin", "reader"], "description": "User's role in the platform" },
+        "photoURL": { "type": "string", "description": "URL to user's profile picture" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "A blog post or story",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the post" },
+        "excerpt": { "type": "string", "description": "Short summary of the post" },
+        "content": { "type": "string", "description": "Full HTML or markdown content" },
+        "category": { "type": "string", "description": "Category tag (e.g., Travel, Food)" },
+        "authorName": { "type": "string", "description": "Name of the author" },
+        "authorId": { "type": "string", "description": "UID of the author" },
+        "publishedAt": { "type": "string", "format": "date-time", "description": "ISO timestamp of publication" },
+        "heroImage": { "type": "string", "description": "URL to the main image" },
+        "status": { "type": "string", "enum": ["Published", "Draft"], "description": "Current status of the post" },
+        "views": { "type": "number", "description": "Total number of views" }
+      },
+      "required": ["title", "content", "category", "authorId", "status"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "User feedback or inquiry",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the person providing feedback" },
+        "email": { "type": "string", "format": "email", "description": "Email address for contact" },
+        "message": { "type": "string", "description": "The feedback message" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "ISO timestamp when feedback was sent" }
+      },
+      "required": ["name", "email", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Blog posts"
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "User feedback submissions"
+    }
+  }
+}

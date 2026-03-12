@@ -1,0 +1,140 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required) - Unique identifier
+    //   - displayName: string (optional) - User's name
+    //   - email: string (required, email) - User's email
+    //   - role: string (required, enum: ['admin', 'reader']) - User's role
+    //   - photoURL: string (optional) - Profile picture URL
+    //
+    // Collection: posts
+    // Document ID: {postId}
+    // Fields:
+    //   - title: string (required, max 200) - Post title
+    //   - excerpt: string (required, max 500) - Post summary
+    //   - content: string (required, max 50000) - Full content
+    //   - category: string (required, max 50) - Category tag
+    //   - authorName: string (required, max 100) - Author's name
+    //   - authorId: string (required) - Author's UID
+    //   - publishedAt: string (required, ISO date) - Publication date
+    //   - heroImage: string (required, URL) - Main image URL
+    //   - status: string (required, enum: ['Published', 'Draft']) - Status
+    //   - views: number (required, >= 0) - View count
+    //
+    // Collection: feedback
+    // Document ID: {feedbackId}
+    // Fields:
+    //   - name: string (required, max 100) - Submitter's name
+    //   - email: string (required, email) - Submitter's email
+    //   - message: string (required, max 2000) - Feedback message
+    //   - createdAt: string (required, ISO date) - Submission date
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "tobiasrojeancarl@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.keys().hasOnly(['uid', 'displayName', 'email', 'role', 'photoURL']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             data.role in ['admin', 'reader'] &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
+             (!('photoURL' in data) || isValidUrl(data.photoURL));
+    }
+
+    function isValidPost(data) {
+      return data.keys().hasOnly(['title', 'excerpt', 'content', 'category', 'authorName', 'authorId', 'publishedAt', 'heroImage', 'status', 'views']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.excerpt is string && data.excerpt.size() <= 500 &&
+             data.content is string && data.content.size() <= 50000 &&
+             data.category is string && data.category.size() <= 50 &&
+             data.authorName is string && data.authorName.size() <= 100 &&
+             data.authorId is string &&
+             isValidDateString(data.publishedAt) &&
+             isValidUrl(data.heroImage) &&
+             data.status in ['Published', 'Draft'] &&
+             data.views is number && data.views >= 0;
+    }
+
+    function isValidFeedback(data) {
+      return data.keys().hasOnly(['name', 'email', 'message', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             isValidEmail(data.email) &&
+             data.message is string && data.message.size() > 0 && data.message.size() <= 2000 &&
+             isValidDateString(data.createdAt);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == 'reader' || isAdmin());
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == resource.data.role || isAdmin());
+    }
+
+    match /posts/{postId} {
+      allow read: if resource.data.status == 'Published' || isAdmin();
+      allow create: if isAdmin() && isValidPost(request.resource.data);
+      allow update: if (isAdmin() && isValidPost(request.resource.data)) || 
+                      (resource.data.status == 'Published' && 
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']) &&
+                       request.resource.data.views == resource.data.views + 1);
+      allow delete: if isAdmin();
+    }
+
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin();
+      allow create: if isValidFeedback(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && 
+                    request.resource.data.authorId == request.auth.uid &&
+                    request.resource.data.keys().hasAll(['postId', 'authorId', 'authorName', 'content', 'createdAt']);
+      allow delete: if isAdmin() || isOwner(resource.data.authorId);
+    }
+  }
+}

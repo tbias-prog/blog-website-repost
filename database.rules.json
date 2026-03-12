@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "users": {
+       "$uid": {
+         ".read": "$uid === auth.uid",
+         ".write": "$uid === auth.uid"
+       }
+    },
+    "posts": {
+      ".read": "true",
+      ".indexOn": ["status", "createdAt", "authorId"],
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'editor'"
+    },
+    "comments": {
+      ".read": "true",
+      ".indexOn": ["postId"],
+      ".write": "auth != null"
+    }
+  }
+}
