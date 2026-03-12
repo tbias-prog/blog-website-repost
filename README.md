@@ -29,7 +29,14 @@ Our platform provides everything you need to run an engaging editorial blog:
 
 Here is a visual demonstration of the platform in action, showcasing the Homepage, Login, and Admin flows!
 
-![Application Demo](./public/app_demo.webp)
+### The Homepage
+![Homepage](./public/homepage.png)
+
+### The Login Screen
+![Login Screen](./public/login.png)
+
+### Admin Dashboard (Access Denied)
+![Admin View](./public/admin.png)
 
 ---
 
