@@ -117,6 +117,7 @@ export function AdminDashboard() {
       }
       setIsModalOpen(false);
     } catch (error) {
+      window.alert("Failed to save post. Ensure you have the right permissions.");
       handleFirestoreError(error, editingPost ? OperationType.UPDATE : OperationType.CREATE, 'posts');
     } finally {
       setLoading(false);
